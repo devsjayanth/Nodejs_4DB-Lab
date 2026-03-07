@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>4_DB-Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*{font-weight:700!important}
+button,input,textarea,select{font-family:inherit}
+html{font-size:16px}
+body{
+  font-family:'Syne',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;
+  overflow-x:hidden;transition:background .3s,color .3s;
+  /* space for fixed statusbar (32px) + footer (34px) */
+  padding-bottom:66px;
+}
+
+/* ═══════════════════════════════════════════════════
+   THEME TOKENS
+═══════════════════════════════════════════════════ */
+:root{
+  --accent:hsl(220,85%,62%);
+  --accent-dim:hsla(220,85%,62%,.14);
+  --danger:hsl(0,72%,60%);
+  --green:hsl(145,65%,52%);
+  --green-dim:hsla(145,65%,52%,.13);
+  --gs:0 0 12px hsla(220,85%,62%,.4);
+  --gm:0 0 28px hsla(220,85%,62%,.28);
+  --gl:0 0 60px hsla(220,85%,62%,.18);
+}
+[data-theme="dark"]{
+  --bg:hsl(220,28%,7%);
+  --surface:hsl(220,24%,12%);
+  --sur2:hsl(220,22%,16%);
+  --sur3:hsl(220,20%,9%);
+  --border:hsl(220,20%,20%);
+  --text:hsl(220,45%,93%);
+  --muted:hsl(220,18%,52%);
+  color-scheme:dark;
+}
+[data-theme="light"]{
+  --bg:hsl(220,28%,94%);
+  --surface:hsl(220,24%,99%);
+  --sur2:hsl(220,22%,90%);
+  --sur3:hsl(220,20%,85%);
+  --border:hsl(220,20%,72%);
+  --text:hsl(220,45%,10%);
+  --muted:hsl(220,18%,38%);
+  --accent:hsl(220,85%,42%);
+  --accent-dim:hsla(220,85%,42%,.14);
+  --green:hsl(145,65%,32%);
+  --green-dim:hsla(145,65%,32%,.14);
+  --danger:hsl(0,72%,44%);
+  --gs:0 0 12px hsla(220,85%,42%,.30);
+  --gm:0 0 28px hsla(220,85%,42%,.22);
+  --gl:0 0 60px hsla(220,85%,42%,.12);
+  color-scheme:light;
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════════ */
+@keyframes orb-spin    {0%{filter:blur(90px) hue-rotate(0deg)}100%{filter:blur(90px) hue-rotate(360deg)}}
+@keyframes hue-shift   {0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+@keyframes pdot        {0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.6)}}
+@keyframes fadeup      {from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes spin        {to{transform:rotate(360deg)}}
+@keyframes pulse-green {0%,100%{box-shadow:0 0 0 2px hsla(145,65%,52%,.25)}50%{box-shadow:0 0 0 6px hsla(145,65%,52%,.04)}}
+@keyframes glow-mysql    {0%,100%{box-shadow:0 0 14px hsla(195,80%,52%,.20),0 6px 20px rgba(0,0,0,.12)}50%{box-shadow:0 0 40px hsla(195,80%,52%,.50),0 6px 20px rgba(0,0,0,.12)}}
+@keyframes glow-mongo    {0%,100%{box-shadow:0 0 14px hsla(120,50%,48%,.20),0 6px 20px rgba(0,0,0,.12)}50%{box-shadow:0 0 40px hsla(120,50%,48%,.48),0 6px 20px rgba(0,0,0,.12)}}
+@keyframes glow-postgres {0%,100%{box-shadow:0 0 14px hsla(210,75%,58%,.20),0 6px 20px rgba(0,0,0,.12)}50%{box-shadow:0 0 40px hsla(210,75%,58%,.48),0 6px 20px rgba(0,0,0,.12)}}
+@keyframes glow-redis    {0%,100%{box-shadow:0 0 14px hsla(5,75%,58%,.22),  0 6px 20px rgba(0,0,0,.12)}50%{box-shadow:0 0 40px hsla(5,75%,58%,.55),  0 6px 20px rgba(0,0,0,.12)}}
+
+/* ═══════════════════════════════════════════════════
+   BG ORBS
+═══════════════════════════════════════════════════ */
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg-orb{position:absolute;border-radius:50%}
+[data-theme="dark"]  .bg-orb{opacity:.30}
+[data-theme="light"] .bg-orb{opacity:.18}
+
+/* All three hero orbs: 0s delay so they spin in phase with brand/hero hue-shift */
+.bg-orb-1{
+  width:110vw;height:80vh;top:-20vh;left:-20vw;
+  background:radial-gradient(ellipse,hsl(220,85%,60%) 0%,transparent 68%);
+  animation:orb-spin 10s linear infinite
+}
+.bg-orb-2{
+  width:100vw;height:90vh;bottom:-25vh;right:-20vw;
+  background:radial-gradient(ellipse,hsl(290,80%,58%) 0%,transparent 68%);
+  animation:orb-spin 10s linear infinite
+}
+.bg-orb-3{
+  width:80vw;height:80vh;top:20%;left:10%;
+  background:radial-gradient(ellipse,hsl(155,75%,50%) 0%,transparent 68%);
+  animation:orb-spin 10s linear infinite
+}
+
+/* DB card orbs — each matches its card colour, positioned in the cards grid zone */
+/* MySQL — cyan — top-left of grid */
+.bg-orb-mysql{
+  width:45vw;height:45vw;top:42%;left:-8vw;
+  background:radial-gradient(ellipse,hsl(195,80%,52%) 0%,transparent 65%);
+  animation:orb-spin 10s linear infinite
+}
+/* MongoDB — green — top-right of grid */
+.bg-orb-mongo{
+  width:45vw;height:45vw;top:42%;left:20vw;
+  background:radial-gradient(ellipse,hsl(120,50%,48%) 0%,transparent 65%);
+  animation:orb-spin 10s linear infinite
+}
+/* PostgreSQL — blue — bottom-left of grid */
+.bg-orb-postgres{
+  width:45vw;height:45vw;top:62%;left:45vw;
+  background:radial-gradient(ellipse,hsl(210,75%,58%) 0%,transparent 65%);
+  animation:orb-spin 10s linear infinite
+}
+/* Redis — red-orange — bottom-right of grid */
+.bg-orb-redis{
+  width:45vw;height:45vw;top:62%;right:-8vw;
+  background:radial-gradient(ellipse,hsl(5,75%,58%) 0%,transparent 65%);
+  animation:orb-spin 10s linear infinite
+}
+
+/* DB orbs slightly dimmer than hero orbs so they accent not overpower */
+[data-theme="dark"]  .bg-orb-mysql,
+[data-theme="dark"]  .bg-orb-mongo,
+[data-theme="dark"]  .bg-orb-postgres,
+[data-theme="dark"]  .bg-orb-redis  { opacity:.18 }
+[data-theme="light"] .bg-orb-mysql,
+[data-theme="light"] .bg-orb-mongo,
+[data-theme="light"] .bg-orb-postgres,
+[data-theme="light"] .bg-orb-redis  { opacity:.12 }
+
+.topbar,.hero,.cards-grid{position:relative;z-index:1}
+
+/* ═══════════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════════ */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(28px) saturate(1.8);
+  -webkit-backdrop-filter:blur(28px) saturate(1.8);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 1px 0 var(--border),var(--gl);
+  transition:background .3s,border-color .3s;
+}
+[data-theme="dark"]  .topbar{background:hsla(220,28%,7%,.55)}
+[data-theme="light"] .topbar{background:hsla(220,28%,96%,.55)}
+.topbar-inner{display:flex;align-items:center;padding:0 24px;height:58px;gap:14px}
+
+/* brand — hue-shift on container syncs dot + text */
+.brand{
+  display:flex;align-items:center;gap:9px;flex:1;
+  font-size:1.25rem;font-weight:800!important;letter-spacing:-.03em;
+  color:var(--accent);text-decoration:none;
+  animation:hue-shift 10s linear infinite;
+}
+.brand-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  background:var(--accent);box-shadow:var(--gs);
+  animation:pdot 2.2s ease-in-out infinite;
+}
+
+.topbar-meta{display:flex;align-items:center;gap:10px}
+.topbar-badge{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:99px;
+  border:1px solid var(--border);background:hsla(220,22%,16%,.50);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.06em;
+  transition:border-color .2s,color .2s;
+}
+[data-theme="light"] .topbar-badge{background:hsla(220,28%,96%,.45)}
+.topbar-badge.all-on  {border-color:hsla(145,65%,52%,.4);color:var(--green)}
+.topbar-badge.some-off{border-color:hsla(38,88%,60%,.4); color:hsl(38,88%,60%)}
+.topbar-badge.all-off {border-color:hsla(0,72%,60%,.3);  color:var(--danger)}
+.tb-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.all-on .tb-dot{animation:pulse-green 2s ease-in-out infinite}
+
+.theme-toggle{
+  width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--border);background:hsla(220,22%,16%,.50);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  cursor:pointer;flex-shrink:0;display:grid;place-items:center;
+  font-size:1.1rem;line-height:1;font-weight:400!important;transition:all .22s;
+}
+[data-theme="light"] .theme-toggle{background:hsla(220,28%,96%,.45)}
+.theme-toggle:hover{
+  border-color:var(--accent);background:var(--accent-dim);
+  box-shadow:0 0 0 4px var(--accent-dim),var(--gs);
+  transform:rotate(20deg) scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════ */
+.hero{
+  flex-shrink:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:10px;padding:44px 24px 36px;
+  border-bottom:1px solid var(--border);
+}
+.hero-title{
+  font-size:clamp(2.2rem,5.5vw,4rem);
+  font-weight:800!important;letter-spacing:-.045em;line-height:1.05;
+  color:var(--accent);margin:0;
+  animation:fadeup .55s .08s ease both, hue-shift 10s linear infinite;
+}
+.hero-sub{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.72rem;color:var(--muted);letter-spacing:.1em;
+  animation:fadeup .55s .16s ease both;
+}
+
+/* ═══════════════════════════════════════════════════
+   CARDS GRID
+═══════════════════════════════════════════════════ */
+.cards-grid{
+  flex:1;display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:22px;padding:24px;align-items:start;
+}
+
+/* per-card colour tokens */
+.col-mysql   {--cc:195,80%,52%;--c:hsl(195,80%,52%)}
+.col-mongo   {--cc:120,50%,48%;--c:hsl(120,50%,48%)}
+.col-postgres{--cc:210,75%,58%;--c:hsl(210,75%,58%)}
+.col-redis   {--cc:5,75%,58%;  --c:hsl(5,75%,58%)}
+
+.db-card{
+  background:hsla(220,24%,12%,.60);
+  backdrop-filter:blur(20px) saturate(1.6);
+  -webkit-backdrop-filter:blur(20px) saturate(1.6);
+  border:1px solid var(--border);
+  border-radius:20px;display:flex;flex-direction:column;
+  height:400px;overflow:hidden;
+  transition:border-color .3s,transform .2s;
+  animation:fadeup .5s ease both;position:relative;
+}
+[data-theme="light"] .db-card{background:hsla(220,24%,99%,.50)}
+.db-card:nth-child(1){animation-delay:.08s}
+.db-card:nth-child(2){animation-delay:.16s}
+.db-card:nth-child(3){animation-delay:.24s}
+.db-card:nth-child(4){animation-delay:.32s}
+.col-mysql.online   {border-color:hsla(195,80%,52%,.5);animation:fadeup .5s .08s ease both,glow-mysql    3s 1s ease-in-out infinite}
+.col-mongo.online   {border-color:hsla(120,50%,48%,.5);animation:fadeup .5s .16s ease both,glow-mongo    3s 1s ease-in-out infinite}
+.col-postgres.online{border-color:hsla(210,75%,58%,.5);animation:fadeup .5s .24s ease both,glow-postgres 3s 1s ease-in-out infinite}
+.col-redis.online   {border-color:hsla(5,75%,58%,.5);  animation:fadeup .5s .32s ease both,glow-redis    3s 1s ease-in-out infinite}
+.db-card:hover{transform:translateY(-3px);animation-play-state:running,paused}
+
+/* top accent bar */
+.card-bar{height:3px;width:100%;opacity:0;transition:opacity .4s;flex-shrink:0}
+.db-card.online .card-bar{opacity:1}
+.col-mysql    .card-bar{background:linear-gradient(90deg,hsl(195,80%,52%),transparent);box-shadow:0 0 10px hsl(195,80%,52%)}
+.col-mongo    .card-bar{background:linear-gradient(90deg,hsl(120,50%,48%),transparent);box-shadow:0 0 10px hsl(120,50%,48%)}
+.col-postgres .card-bar{background:linear-gradient(90deg,hsl(210,75%,58%),transparent);box-shadow:0 0 10px hsl(210,75%,58%)}
+.col-redis    .card-bar{background:linear-gradient(90deg,hsl(5,75%,58%),transparent);  box-shadow:0 0 10px hsl(5,75%,58%)}
+
+/* card header */
+.card-head{
+  padding:20px 20px 14px;border-bottom:1px solid var(--border);
+  flex-shrink:0;cursor:pointer;transition:background .18s;user-select:none;
+}
+.card-head:hover{background:hsla(220,40%,50%,.06)}
+.card-icon-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.card-icon{
+  width:44px;height:44px;border-radius:12px;
+  border:1px solid var(--border);
+  background:hsla(220,22%,16%,.45);
+  backdrop-filter:blur(12px) saturate(1.6);
+  -webkit-backdrop-filter:blur(12px) saturate(1.6);
+  display:grid;place-items:center;font-size:1.3rem;font-weight:400!important;
+  box-shadow:inset 0 1px 0 hsla(0,0%,100%,.06);transition:box-shadow .3s;
+}
+[data-theme="light"] .card-icon{background:hsla(220,22%,90%,.40)}
+.db-card.online .card-icon{box-shadow:inset 0 1px 0 hsla(0,0%,100%,.06),0 0 14px hsla(var(--cc),.45)}
+.view-hint{
+  font-family:'JetBrains Mono',monospace;font-size:.54rem;
+  color:var(--muted);letter-spacing:.08em;opacity:.55;
+  display:flex;align-items:center;gap:4px;transition:opacity .18s,color .18s;
+}
+.card-head:hover .view-hint{opacity:1;color:var(--c)}
+
+.card-title{font-size:1.05rem;letter-spacing:-.025em;margin-bottom:3px}
+.col-mysql    .card-title{color:hsl(195,80%,52%)}
+.col-mongo    .card-title{color:hsl(120,50%,48%)}
+.col-postgres .card-title{color:hsl(210,75%,58%)}
+.col-redis    .card-title{color:hsl(5,75%,58%)}
+
+.card-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.card-subtitle{font-family:'JetBrains Mono',monospace;font-size:.57rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.card-port{
+  font-family:'JetBrains Mono',monospace;font-size:.57rem;
+  padding:2px 7px;border-radius:6px;
+  border:1px solid var(--border);background:hsla(220,20%,9%,.50);color:var(--muted);
+  transition:border-color .3s,color .3s;
+}
+[data-theme="light"] .card-port{background:hsla(220,28%,96%,.45)}
+.db-card.online.col-mysql    .card-port{border-color:hsla(195,80%,52%,.4);color:hsl(195,80%,52%)}
+.db-card.online.col-mongo    .card-port{border-color:hsla(120,50%,48%,.4);color:hsl(120,50%,48%)}
+.db-card.online.col-postgres .card-port{border-color:hsla(210,75%,58%,.4);color:hsl(210,75%,58%)}
+.db-card.online.col-redis    .card-port{border-color:hsla(5,75%,58%,.4);  color:hsl(5,75%,58%)}
+
+/* status badge */
+.status-badge{
+  display:flex;align-items:center;gap:7px;
+  margin-top:12px;padding:8px 12px;border-radius:10px;
+  border:1px solid var(--border);background:hsla(220,22%,16%,.45);
+  font-family:'JetBrains Mono',monospace;font-size:.67rem;color:var(--muted);
+  transition:all .4s;
+}
+[data-theme="light"] .status-badge{background:hsla(220,28%,96%,.45)}
+.status-badge.online {border-color:hsla(145,65%,52%,.35);background:var(--green-dim);color:var(--green)}
+.status-badge.offline{border-color:hsla(0,72%,60%,.25);background:hsla(0,72%,60%,.07);color:var(--danger)}
+.status-badge.failed {border-color:hsla(0,72%,60%,.35);background:hsla(0,72%,60%,.10);color:var(--danger)}
+.s-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.status-badge.online .s-dot{animation:pulse-green 2s ease-in-out infinite}
+.s-label{flex:1}
+.s-icon{font-size:.82rem}
+
+/* card body */
+.card-body{
+  flex:1;padding:16px 18px 0;
+  display:flex;flex-direction:column;gap:10px;
+  overflow-y:auto;min-height:0;
+  scrollbar-width:none;position:relative;
+}
+.card-body::-webkit-scrollbar{display:none}
+.card-body-inner{display:flex;flex-direction:column;gap:10px;padding-bottom:38px}
+
+.write-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:4px;
+}
+.write-ta{
+  width:100%;background:hsla(220,22%,16%,.50);border:1px solid var(--border);
+  border-radius:11px;padding:10px 13px;color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height:1.55;
+  outline:none;resize:none;height:72px;
+  transition:border-color .22s,box-shadow .22s,background .2s;
+}
+[data-theme="light"] .write-ta{background:hsla(220,28%,96%,.45)}
+.write-ta::placeholder{color:var(--muted);opacity:.6}
+.write-ta:focus{background:hsla(220,22%,16%,.70)}
+.col-mysql    .write-ta:focus{border-color:hsla(195,80%,52%,.55);box-shadow:0 0 18px hsla(195,80%,52%,.22)}
+.col-mongo    .write-ta:focus{border-color:hsla(120,50%,48%,.55);box-shadow:0 0 18px hsla(120,50%,48%,.22)}
+.col-postgres .write-ta:focus{border-color:hsla(210,75%,58%,.55);box-shadow:0 0 18px hsla(210,75%,58%,.22)}
+.col-redis    .write-ta:focus{border-color:hsla(5,75%,58%,.55);  box-shadow:0 0 18px hsla(5,75%,58%,.22)}
+
+.write-btn{
+  width:100%;padding:10px;border-radius:11px;border:none;
+  font-family:'Syne',sans-serif;font-size:.78rem;cursor:pointer;color:#fff;
+  transition:opacity .17s,transform .13s,box-shadow .2s;
+  position:relative;overflow:hidden;
+}
+.write-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,hsla(0,0%,100%,.12) 0%,transparent 60%);pointer-events:none}
+.write-btn:hover:not(:disabled){opacity:.86;transform:translateY(-1px)}
+.write-btn:active:not(:disabled){transform:scale(.97)}
+.write-btn:disabled{opacity:.35;cursor:not-allowed}
+.col-mysql    .write-btn{background:hsl(195,80%,52%);box-shadow:0 4px 18px hsla(195,80%,52%,.35)}
+.col-mongo    .write-btn{background:hsl(120,50%,48%);box-shadow:0 4px 18px hsla(120,50%,48%,.35)}
+.col-postgres .write-btn{background:hsl(210,75%,58%);box-shadow:0 4px 18px hsla(210,75%,58%,.35)}
+.col-redis    .write-btn{background:hsl(5,75%,58%);  box-shadow:0 4px 18px hsla(5,75%,58%,.35)}
+.col-mysql    .write-btn:hover:not(:disabled){box-shadow:0 0 30px hsla(195,80%,52%,.55)}
+.col-mongo    .write-btn:hover:not(:disabled){box-shadow:0 0 30px hsla(120,50%,48%,.52)}
+.col-postgres .write-btn:hover:not(:disabled){box-shadow:0 0 30px hsla(210,75%,58%,.52)}
+.col-redis    .write-btn:hover:not(:disabled){box-shadow:0 0 30px hsla(5,75%,58%,.58)}
+
+.log-area{display:flex;flex-direction:column;gap:4px}
+.log-item{
+  font-family:'JetBrains Mono',monospace;font-size:.62rem;
+  padding:6px 10px;border-radius:8px;border:1px solid var(--border);
+  background:hsla(220,20%,9%,.50);color:var(--muted);word-break:break-all;line-height:1.5;
+  animation:fadeup .22s ease;
+}
+[data-theme="light"] .log-item{background:hsla(220,28%,96%,.45)}
+.log-item.ok {border-color:hsla(145,65%,52%,.25);background:hsla(145,65%,52%,.06);color:var(--green)}
+.log-item.err{border-color:hsla(0,72%,60%,.22);background:hsla(0,72%,60%,.06);color:var(--danger)}
+.log-ts{opacity:.45;margin-right:5px}
+
+.scroll-arrow{
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  width:28px;height:28px;border-radius:50%;
+  border:1px solid var(--border);background:hsla(220,22%,16%,.55);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:var(--muted);font-size:.7rem;
+  display:grid;place-items:center;
+  cursor:pointer;opacity:0;transition:opacity .25s,border-color .2s;z-index:10;
+  font-weight:400!important;
+}
+[data-theme="light"] .scroll-arrow{background:hsla(220,28%,96%,.50)}
+.scroll-arrow.vis{opacity:1}
+.scroll-arrow:hover{border-color:var(--c);color:var(--c)}
+
+/* ═══════════════════════════════════════════════════
+   ENTRIES OVERLAY
+═══════════════════════════════════════════════════ */
+.overlay{
+  position:fixed;inset:0;z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:rgba(0,0,0,.70);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.overlay.open{opacity:1;pointer-events:all}
+.ov-modal{
+  width:100%;max-width:560px;
+  background:hsla(220,24%,12%,.75);
+  backdrop-filter:blur(28px) saturate(1.8);
+  -webkit-backdrop-filter:blur(28px) saturate(1.8);
+  border:1px solid var(--border);border-radius:22px;
+  display:flex;flex-direction:column;max-height:80vh;overflow:hidden;
+  transform:translateY(14px) scale(.97);opacity:0;
+  transition:transform .25s,opacity .25s;
+  box-shadow:0 32px 80px rgba(0,0,0,.55);
+}
+[data-theme="light"] .ov-modal{background:hsla(220,24%,99%,.70)}
+.overlay.open .ov-modal{transform:none;opacity:1}
+.ov-modal[data-db="mysql"]   {border-color:hsla(195,80%,52%,.45);box-shadow:0 0 40px hsla(195,80%,52%,.25),0 32px 80px rgba(0,0,0,.5)}
+.ov-modal[data-db="mongo"]   {border-color:hsla(120,50%,48%,.45);box-shadow:0 0 40px hsla(120,50%,48%,.25),0 32px 80px rgba(0,0,0,.5)}
+.ov-modal[data-db="postgres"]{border-color:hsla(210,75%,58%,.45);box-shadow:0 0 40px hsla(210,75%,58%,.25),0 32px 80px rgba(0,0,0,.5)}
+.ov-modal[data-db="redis"]   {border-color:hsla(5,75%,58%,.45);  box-shadow:0 0 40px hsla(5,75%,58%,.25),  0 32px 80px rgba(0,0,0,.5)}
+.ov-bar{height:3px;width:100%;flex-shrink:0}
+.ov-modal[data-db="mysql"]    .ov-bar{background:linear-gradient(90deg,hsl(195,80%,52%),transparent)}
+.ov-modal[data-db="mongo"]    .ov-bar{background:linear-gradient(90deg,hsl(120,50%,48%),transparent)}
+.ov-modal[data-db="postgres"] .ov-bar{background:linear-gradient(90deg,hsl(210,75%,58%),transparent)}
+.ov-modal[data-db="redis"]    .ov-bar{background:linear-gradient(90deg,hsl(5,75%,58%),transparent)}
+.ov-head{
+  display:flex;align-items:center;gap:12px;
+  padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.ov-icon{font-size:1.4rem;line-height:1;font-weight:400!important}
+.ov-title-wrap{flex:1}
+.ov-title{font-size:1rem;letter-spacing:-.02em}
+.ov-subtitle{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:1px}
+.ov-count{
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;
+  padding:3px 9px;border-radius:99px;
+  border:1px solid var(--border);background:hsla(220,22%,16%,.50);color:var(--muted);
+}
+[data-theme="light"] .ov-count{background:hsla(220,28%,96%,.45)}
+.ov-close{
+  width:32px;height:32px;border-radius:50%;
+  border:1px solid var(--border);background:hsla(220,22%,16%,.50);
+  color:var(--muted);cursor:pointer;font-size:.8rem;
+  display:grid;place-items:center;transition:all .15s;font-weight:400!important;
+}
+[data-theme="light"] .ov-close{background:hsla(220,28%,96%,.45)}
+.ov-close:hover{border-color:var(--danger);color:var(--danger);background:hsla(0,72%,60%,.1)}
+.ov-list-wrap{flex:1;position:relative;overflow:hidden}
+.ov-list{height:100%;overflow-y:auto;scrollbar-width:none;padding-bottom:42px}
+.ov-list::-webkit-scrollbar{display:none}
+.ov-entry{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 20px;border-bottom:1px solid var(--border);
+  transition:background .14s;animation:fadeup .2s ease both;
+}
+.ov-entry:last-child{border-bottom:none}
+.ov-entry:hover{background:hsla(220,22%,16%,.35)}
+.ov-entry-body{flex:1;min-width:0}
+.ov-entry-text{font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--text);line-height:1.55;word-break:break-word;white-space:pre-wrap}
+.ov-entry-ts{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:3px;opacity:.7}
+.ov-del{
+  flex-shrink:0;width:24px;height:24px;border-radius:7px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--muted);font-size:.7rem;cursor:pointer;
+  display:grid;place-items:center;transition:all .15s;margin-top:1px;font-weight:400!important;
+}
+.ov-del:hover{background:hsla(0,72%,60%,.15);border-color:var(--danger);color:var(--danger)}
+.ov-empty{padding:40px 20px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--muted);opacity:.65}
+.ov-scroll-arrow{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  width:30px;height:30px;border-radius:50%;
+  border:1px solid var(--border);background:hsla(220,22%,16%,.55);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:var(--muted);font-size:.75rem;
+  display:grid;place-items:center;
+  cursor:pointer;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10;
+  font-weight:400!important;
+}
+[data-theme="light"] .ov-scroll-arrow{background:hsla(220,28%,96%,.50)}
+.ov-scroll-arrow.vis{opacity:1;pointer-events:all}
+.ov-scroll-arrow:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ═══════════════════════════════════════════════════
+   STATUSBAR  (fixed above footer)
+═══════════════════════════════════════════════════ */
+.statusbar{
+  position:fixed;bottom:34px;left:0;right:0;z-index:90;
+  height:32px;
+  border-top:1px solid var(--border);
+  backdrop-filter:blur(24px) saturate(1.8);
+  -webkit-backdrop-filter:blur(24px) saturate(1.8);
+  display:flex;align-items:center;padding:0 20px;gap:18px;
+  transition:background .3s,border-color .3s;
+}
+[data-theme="dark"]  .statusbar{background:hsla(220,20%,9%,.55)}
+[data-theme="light"] .statusbar{background:hsla(220,28%,96%,.55)}
+.sb-chip{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);display:flex;align-items:center;gap:5px}
+.sb-chip b{color:var(--text)}
+.sb-dot{width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.sb-dot.on {background:var(--green)}
+.sb-dot.off{background:var(--danger)}
+.sb-time{margin-left:auto;opacity:.4;font-family:'JetBrains Mono',monospace;font-size:.6rem}
+
+/* ═══════════════════════════════════════════════════
+   FOOTER  (fixed at bottom)
+═══════════════════════════════════════════════════ */
+#site-footer{
+  position:fixed;bottom:0;left:0;right:0;z-index:89;
+  height:34px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:.65rem;
+  color:var(--muted);letter-spacing:.06em;
+  border-top:1px solid var(--border);
+  backdrop-filter:blur(24px) saturate(1.8);
+  -webkit-backdrop-filter:blur(24px) saturate(1.8);
+  transition:background .3s,border-color .3s;
+}
+[data-theme="dark"]  #site-footer{background:hsla(220,20%,9%,.55)}
+[data-theme="light"] #site-footer{background:hsla(220,28%,96%,.55)}
+
+/* footer name — same hue-shift as brand/title */
+.footer-name{
+  color:var(--accent);
+  animation:hue-shift 10s linear infinite;
+  display:inline-block;margin-left:4px;
+}
+.footer-heart{ color:hsl(340,80%,62%); margin:0 3px }
+
+/* spinner */
+.spinner{display:inline-block;width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;opacity:.7}
+
+/* ═══════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES  (colour + border only — backgrounds set inline above)
+═══════════════════════════════════════════════════ */
+/* card titles & ports */
+[data-theme="light"] .col-mysql    .card-title{color:hsl(195,80%,26%)}
+[data-theme="light"] .col-mongo    .card-title{color:hsl(120,55%,24%)}
+[data-theme="light"] .col-postgres .card-title{color:hsl(210,75%,30%)}
+[data-theme="light"] .col-redis    .card-title{color:hsl(5,72%,36%)}
+[data-theme="light"] .col-mysql    .card-port{border-color:hsla(195,80%,26%,.45);color:hsl(195,80%,26%)}
+[data-theme="light"] .col-mongo    .card-port{border-color:hsla(120,55%,24%,.45);color:hsl(120,55%,24%)}
+[data-theme="light"] .col-postgres .card-port{border-color:hsla(210,75%,30%,.45);color:hsl(210,75%,30%)}
+[data-theme="light"] .col-redis    .card-port{border-color:hsla(5,72%,36%,.45);  color:hsl(5,72%,36%)}
+/* write buttons */
+[data-theme="light"] .col-mysql    .write-btn{background:hsl(195,75%,30%);box-shadow:0 4px 16px hsla(195,75%,30%,.35)}
+[data-theme="light"] .col-mongo    .write-btn{background:hsl(120,50%,28%);box-shadow:0 4px 16px hsla(120,50%,28%,.35)}
+[data-theme="light"] .col-postgres .write-btn{background:hsl(210,72%,34%);box-shadow:0 4px 16px hsla(210,72%,34%,.35)}
+[data-theme="light"] .col-redis    .write-btn{background:hsl(5,68%,40%);  box-shadow:0 4px 16px hsla(5,68%,40%,.35)}
+/* textarea focus bg bump */
+[data-theme="light"] .write-ta:focus{background:hsla(220,28%,96%,.72)}
+[data-theme="light"] .write-ta{color:hsl(220,45%,6%);border-color:hsl(220,20%,65%)}
+[data-theme="light"] .write-ta::placeholder{color:hsl(220,18%,45%);opacity:1}
+[data-theme="light"] .write-lbl{color:hsl(220,22%,28%)}
+[data-theme="light"] .card-subtitle{color:hsl(220,20%,28%)}
+/* log items — default keeps transparent bg from inline; only recolour text */
+[data-theme="light"] .log-item    {color:hsl(220,30%,16%);border-color:hsl(220,20%,68%)}
+[data-theme="light"] .log-item.ok {background:hsla(145,65%,28%,.10);border-color:hsla(145,65%,28%,.40);color:hsl(145,60%,22%)}
+[data-theme="light"] .log-item.err{background:hsla(0,72%,44%,.10);  border-color:hsla(0,72%,44%,.40); color:hsl(0,65%,30%)}
+/* status badges — default bg set inline; override border+text colour only */
+[data-theme="light"] .status-badge        {border-color:hsl(220,20%,65%);color:hsl(220,25%,22%)}
+[data-theme="light"] .status-badge.online {background:hsla(145,65%,28%,.12);border-color:hsla(145,65%,28%,.45);color:hsl(145,60%,20%)}
+[data-theme="light"] .status-badge.offline{background:hsla(0,72%,44%,.10); border-color:hsla(0,72%,44%,.40); color:hsl(0,65%,30%)}
+[data-theme="light"] .status-badge.failed {background:hsla(0,72%,44%,.13); border-color:hsla(0,72%,44%,.50); color:hsl(0,65%,28%)}
+/* topbar badge — bg set inline; only recolour states */
+[data-theme="light"] .topbar-badge.all-on  {border-color:hsla(145,65%,28%,.5);color:hsl(145,60%,20%)}
+[data-theme="light"] .topbar-badge.some-off{border-color:hsla(38,85%,38%,.5); color:hsl(38,85%,28%)}
+[data-theme="light"] .topbar-badge.all-off {border-color:hsla(0,72%,44%,.5);  color:hsl(0,65%,30%)}
+/* text */
+[data-theme="light"] .hero-sub{color:hsl(220,22%,28%)}
+[data-theme="light"] .sb-chip  {color:hsl(220,30%,28%)}
+[data-theme="light"] .sb-chip b{color:hsl(220,45%,10%)}
+/* overlay modal — bg set inline; only recolour text */
+[data-theme="light"] .ov-title    {color:hsl(220,45%,6%)}
+[data-theme="light"] .ov-subtitle {color:hsl(220,22%,30%)}
+[data-theme="light"] .ov-count    {border-color:hsl(220,20%,63%);color:hsl(220,25%,20%)}
+[data-theme="light"] .ov-entry-text{color:hsl(220,45%,6%)}
+[data-theme="light"] .ov-entry-ts {color:hsl(220,20%,30%);opacity:1}
+[data-theme="light"] .ov-entry:hover{background:hsla(220,28%,80%,.25)}
+[data-theme="light"] .ov-close    {border-color:hsl(220,20%,63%);color:hsl(220,25%,22%)}
+[data-theme="light"] .scroll-arrow{border-color:hsl(220,20%,63%);color:hsl(220,25%,24%)}
+[data-theme="light"] .view-hint   {color:hsl(220,22%,32%)}
+[data-theme="light"] .theme-toggle{border-color:hsl(220,20%,63%);color:hsl(220,25%,22%)}
+[data-theme="light"] .card-head:hover{background:hsla(220,40%,50%,.07)}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+@media(max-width:1100px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){
+  .cards-grid{grid-template-columns:1fr;padding:14px}
+  .hero-title{font-size:2rem}
+  .topbar-badge{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- bg orbs -->
+<div class="bg-orbs" aria-hidden="true">
+  <!-- hero orbs -->
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+  <!-- DB card orbs — match each card's colour -->
+  <div class="bg-orb bg-orb-mysql"></div>
+  <div class="bg-orb bg-orb-mongo"></div>
+  <div class="bg-orb bg-orb-postgres"></div>
+  <div class="bg-orb bg-orb-redis"></div>
+</div>
+
+<!-- ════ TOPBAR ════════════════════════════════════ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      4_DB-Lab
+    </div>
+    <div class="topbar-meta">
+      <div class="topbar-badge" id="global-badge">
+        <span class="tb-dot"></span>
+        <span id="global-badge-txt">Connecting…</span>
+      </div>
+      <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </div>
+  </div>
+</header>
+
+<!-- ════ HERO ══════════════════════════════════════ -->
+<section class="hero">
+  <h1 class="hero-title">4_DB-Lab | Node.js</h1>
+  <p class="hero-sub">MySQL · MongoDB · PostgreSQL · Redis</p>
+</section>
+
+<!-- ════ CARDS ═════════════════════════════════════ -->
+<main class="cards-grid">
+
+  <!-- MySQL -->
+  <article class="db-card col-mysql" id="col-mysql">
+    <div class="card-bar"></div>
+    <div class="card-head" onclick="openOverlay('mysql')">
+      <div class="card-icon-row">
+        <div class="card-icon">🐬</div>
+        <span class="view-hint">↗ View entries</span>
+      </div>
+      <div class="card-title">MySQL</div>
+      <div class="card-meta">
+        <span class="card-subtitle">Relational · SQL</span>
+        <span class="card-port">:3306</span>
+      </div>
+      <div class="status-badge" id="status-mysql">
+        <span class="s-dot"></span><span class="s-label">Connecting…</span><span class="spinner"></span>
+      </div>
+    </div>
+    <div class="card-body" id="body-mysql">
+      <div class="card-body-inner" id="inner-mysql">
+        <div>
+          <div class="write-lbl">Write Entry</div>
+          <textarea class="write-ta" id="input-mysql" placeholder="Insert into MySQL…" disabled></textarea>
+        </div>
+        <button class="write-btn" id="btn-mysql" onclick="writeEntry('mysql')" disabled>Insert Row ↗</button>
+        <div class="log-area" id="log-mysql"></div>
+      </div>
+      <button class="scroll-arrow" id="sarr-mysql" onclick="scrollCardDown('mysql')" tabindex="-1">▼</button>
+    </div>
+  </article>
+
+  <!-- MongoDB -->
+  <article class="db-card col-mongo" id="col-mongo">
+    <div class="card-bar"></div>
+    <div class="card-head" onclick="openOverlay('mongo')">
+      <div class="card-icon-row">
+        <div class="card-icon">🍃</div>
+        <span class="view-hint">↗ View entries</span>
+      </div>
+      <div class="card-title">MongoDB</div>
+      <div class="card-meta">
+        <span class="card-subtitle">Document · NoSQL</span>
+        <span class="card-port">:27017</span>
+      </div>
+      <div class="status-badge" id="status-mongo">
+        <span class="s-dot"></span><span class="s-label">Connecting…</span><span class="spinner"></span>
+      </div>
+    </div>
+    <div class="card-body" id="body-mongo">
+      <div class="card-body-inner" id="inner-mongo">
+        <div>
+          <div class="write-lbl">Write Entry</div>
+          <textarea class="write-ta" id="input-mongo" placeholder="Insert into MongoDB…" disabled></textarea>
+        </div>
+        <button class="write-btn" id="btn-mongo" onclick="writeEntry('mongo')" disabled>Insert Doc ↗</button>
+        <div class="log-area" id="log-mongo"></div>
+      </div>
+      <button class="scroll-arrow" id="sarr-mongo" onclick="scrollCardDown('mongo')" tabindex="-1">▼</button>
+    </div>
+  </article>
+
+  <!-- PostgreSQL -->
+  <article class="db-card col-postgres" id="col-postgres">
+    <div class="card-bar"></div>
+    <div class="card-head" onclick="openOverlay('postgres')">
+      <div class="card-icon-row">
+        <div class="card-icon">🐘</div>
+        <span class="view-hint">↗ View entries</span>
+      </div>
+      <div class="card-title">PostgreSQL</div>
+      <div class="card-meta">
+        <span class="card-subtitle">Relational · ACID</span>
+        <span class="card-port">:5432</span>
+      </div>
+      <div class="status-badge" id="status-postgres">
+        <span class="s-dot"></span><span class="s-label">Connecting…</span><span class="spinner"></span>
+      </div>
+    </div>
+    <div class="card-body" id="body-postgres">
+      <div class="card-body-inner" id="inner-postgres">
+        <div>
+          <div class="write-lbl">Write Entry</div>
+          <textarea class="write-ta" id="input-postgres" placeholder="Insert into PostgreSQL…" disabled></textarea>
+        </div>
+        <button class="write-btn" id="btn-postgres" onclick="writeEntry('postgres')" disabled>Insert Row ↗</button>
+        <div class="log-area" id="log-postgres"></div>
+      </div>
+      <button class="scroll-arrow" id="sarr-postgres" onclick="scrollCardDown('postgres')" tabindex="-1">▼</button>
+    </div>
+  </article>
+
+  <!-- Redis -->
+  <article class="db-card col-redis" id="col-redis">
+    <div class="card-bar"></div>
+    <div class="card-head" onclick="openOverlay('redis')">
+      <div class="card-icon-row">
+        <div class="card-icon">⚡</div>
+        <span class="view-hint">↗ View entries</span>
+      </div>
+      <div class="card-title">Redis</div>
+      <div class="card-meta">
+        <span class="card-subtitle">In-Memory · KV</span>
+        <span class="card-port">:6379</span>
+      </div>
+      <div class="status-badge" id="status-redis">
+        <span class="s-dot"></span><span class="s-label">Connecting…</span><span class="spinner"></span>
+      </div>
+    </div>
+    <div class="card-body" id="body-redis">
+      <div class="card-body-inner" id="inner-redis">
+        <div>
+          <div class="write-lbl">Write Entry</div>
+          <textarea class="write-ta" id="input-redis" placeholder="SET into Redis…" disabled></textarea>
+        </div>
+        <button class="write-btn" id="btn-redis" onclick="writeEntry('redis')" disabled>SET Key ↗</button>
+        <div class="log-area" id="log-redis"></div>
+      </div>
+      <button class="scroll-arrow" id="sarr-redis" onclick="scrollCardDown('redis')" tabindex="-1">▼</button>
+    </div>
+  </article>
+
+</main>
+
+<!-- ════ STATUSBAR ═════════════════════════════════ -->
+<nav class="statusbar" aria-label="Database status">
+  <div class="sb-chip"><span class="sb-dot" id="sb-mysql"></span><b>MySQL</b><span id="sb-mysql-txt">—</span></div>
+  <div class="sb-chip"><span class="sb-dot" id="sb-mongo"></span><b>MongoDB</b><span id="sb-mongo-txt">—</span></div>
+  <div class="sb-chip"><span class="sb-dot" id="sb-postgres"></span><b>PostgreSQL</b><span id="sb-postgres-txt">—</span></div>
+  <div class="sb-chip"><span class="sb-dot" id="sb-redis"></span><b>Redis</b><span id="sb-redis-txt">—</span></div>
+  <span class="sb-time" id="last-poll">—</span>
+</nav>
+
+<!-- ════ ENTRIES OVERLAY ═══════════════════════════ -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeOverlay()">
+  <div class="ov-modal" id="ov-modal">
+    <div class="ov-bar"></div>
+    <div class="ov-head">
+      <span class="ov-icon" id="ov-icon">🐬</span>
+      <div class="ov-title-wrap">
+        <div class="ov-title" id="ov-title">MySQL</div>
+        <div class="ov-subtitle" id="ov-subtitle">All Entries</div>
+      </div>
+      <span class="ov-count" id="ov-count">0</span>
+      <button class="ov-close" onclick="closeOverlay()">✕</button>
+    </div>
+    <div class="ov-list-wrap">
+      <div class="ov-list" id="ov-list"></div>
+      <button class="ov-scroll-arrow" id="ov-arrow" onclick="scrollOvDown()">▼</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ FOOTER ════════════════════════════════════ -->
+<footer id="site-footer">
+  Happy Learning &nbsp;·&nbsp; Made with <span class="footer-heart">❤️</span> by
+  <strong class="footer-name">Dev Jayanth</strong>
+</footer>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════
+const DBS = ['mysql','mongo','postgres','redis'];
+const DB_META = {
+  mysql:    { icon:'🐬', label:'MySQL',      sub:'All Rows' },
+  mongo:    { icon:'🍃', label:'MongoDB',    sub:'All Documents' },
+  postgres: { icon:'🐘', label:'PostgreSQL', sub:'All Rows' },
+  redis:    { icon:'⚡', label:'Redis',       sub:'All Keys' },
+};
+const WRITE_LABELS = {
+  mysql:'Insert Row ↗', mongo:'Insert Doc ↗', postgres:'Insert Row ↗', redis:'SET Key ↗',
+};
+
+// ═══════════════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════════════
+const root = document.documentElement;
+function applyTheme(t) {
+  root.setAttribute('data-theme', t);
+  document.getElementById('theme-btn').textContent = t === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('4db-theme', t);
+}
+function toggleTheme() {
+  applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+applyTheme(localStorage.getItem('4db-theme') || 'dark');
+
+// ═══════════════════════════════════════════════════
+//  5-SECOND FAIL TIMEOUT
+// ═══════════════════════════════════════════════════
+const dbSeen   = { mysql:false, mongo:false, postgres:false, redis:false };
+const dbFailed = { mysql:false, mongo:false, postgres:false, redis:false };
+
+setTimeout(() => {
+  DBS.forEach(db => {
+    if (!dbSeen[db]) { dbFailed[db] = true; markFailed(db); }
+  });
+}, 5000);
+
+function markFailed(db) {
+  const badge = document.getElementById(`status-${db}`);
+  badge.className = 'status-badge failed';
+  badge.innerHTML = `<span class="s-dot"></span><span class="s-label">✕ Failed — retrying…</span>`;
+  document.getElementById(`sb-${db}`).className    = 'sb-dot off';
+  document.getElementById(`sb-${db}-txt`).textContent = 'failed';
+}
+
+// ═══════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════
+const ts = () => new Date().toLocaleTimeString('en-GB', { hour12:false });
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+       + ' ' + d.toLocaleTimeString('en-GB', { hour12:false });
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addLog(db, msg, type = 'info') {
+  const area = document.getElementById(`log-${db}`);
+  if (!area) return;
+  // keep max 5 entries
+  while (area.children.length >= 5) area.removeChild(area.lastChild);
+  const el = document.createElement('div');
+  el.className = `log-item ${type === 'success' ? 'ok' : type === 'error' ? 'err' : ''}`;
+  el.innerHTML = `<span class="log-ts">${ts()}</span>${esc(msg)}`;
+  area.prepend(el);
+  updateCardArrow(db);
+}
+
+// ═══════════════════════════════════════════════════
+//  CARD SCROLL ARROW
+// ═══════════════════════════════════════════════════
+function updateCardArrow(db) {
+  const body = document.getElementById(`body-${db}`);
+  const arr  = document.getElementById(`sarr-${db}`);
+  if (!body || !arr) return;
+  const canScroll = body.scrollHeight > body.clientHeight + 8;
+  const atBottom  = body.scrollTop + body.clientHeight >= body.scrollHeight - 8;
+  arr.classList.toggle('vis', canScroll && !atBottom);
+}
+function scrollCardDown(db) {
+  document.getElementById(`body-${db}`)?.scrollBy({ top:100, behavior:'smooth' });
+}
+
+// ═══════════════════════════════════════════════════
+//  STATUS POLL
+// ═══════════════════════════════════════════════════
+async function pollStatus() {
+  try {
+    const res = await fetch('/api/status');
+    if (!res.headers.get('content-type')?.includes('application/json')) return;
+    const data = await res.json();
+    let online = 0;
+    DBS.forEach(db => {
+      if (data[db]?.connected) { online++; dbSeen[db] = true; dbFailed[db] = false; }
+      applyStatus(db, data[db]?.connected);
+    });
+    const badge = document.getElementById('global-badge');
+    const txt   = document.getElementById('global-badge-txt');
+    badge.className = `topbar-badge ${online === 4 ? 'all-on' : online === 0 ? 'all-off' : 'some-off'}`;
+    txt.textContent = online === 4 ? '4/4 Online' : online === 0 ? 'All Offline' : `${online}/4 Online`;
+    document.getElementById('last-poll').textContent = `Last check: ${ts()}`;
+  } catch (e) {
+    console.warn('Poll error:', e.message);
+  }
+}
+
+function applyStatus(db, connected) {
+  const badge = document.getElementById(`status-${db}`);
+  const card  = document.getElementById(`col-${db}`);
+  const input = document.getElementById(`input-${db}`);
+  const btn   = document.getElementById(`btn-${db}`);
+  const sbDot = document.getElementById(`sb-${db}`);
+  const sbTxt = document.getElementById(`sb-${db}-txt`);
+
+  if (connected) {
+    badge.className = 'status-badge online';
+    badge.innerHTML = `<span class="s-dot"></span><span class="s-label">Online</span><span class="s-icon">✓</span>`;
+    card.classList.add('online');
+    input.disabled = false;
+    btn.disabled   = false;
+    sbDot.className    = 'sb-dot on';
+    sbTxt.textContent  = 'online';
+  } else {
+    if (!dbFailed[db]) {
+      badge.className = 'status-badge offline';
+      badge.innerHTML = `<span class="s-dot"></span><span class="s-label">Not connected</span><span class="s-icon">✕</span>`;
+    }
+    card.classList.remove('online');
+    input.disabled = true;
+    btn.disabled   = true;
+    sbDot.className = 'sb-dot off';
+    if (!dbFailed[db]) sbTxt.textContent = 'offline';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  WRITE ENTRY
+// ═══════════════════════════════════════════════════
+async function writeEntry(db) {
+  const input = document.getElementById(`input-${db}`);
+  const btn   = document.getElementById(`btn-${db}`);
+  const text  = input.value.trim();
+  if (!text) { addLog(db, 'Please enter some content first.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner" style="border-color:rgba(255,255,255,.4);border-top-color:transparent;width:9px;height:9px;vertical-align:middle"></span> Saving…`;
+
+  try {
+    const res  = await fetch(`/api/${db}/write`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      addLog(db, data.message, 'success');
+      input.value = '';
+      if (currentOvDb === db) await loadOverlay(db);
+    } else {
+      addLog(db, `Error: ${data.error}`, 'error');
+    }
+  } catch (e) {
+    addLog(db, `Network error: ${e.message}`, 'error');
+  } finally {
+    btn.disabled  = false;
+    btn.textContent = WRITE_LABELS[db];
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  OVERLAY
+// ═══════════════════════════════════════════════════
+let currentOvDb = null;
+
+async function openOverlay(db) {
+  currentOvDb = db;
+  const m     = DB_META[db];
+  const modal = document.getElementById('ov-modal');
+  modal.dataset.db = db;
+  document.getElementById('ov-icon').textContent     = m.icon;
+  document.getElementById('ov-title').textContent    = m.label;
+  document.getElementById('ov-subtitle').textContent = m.sub;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  await loadOverlay(db);
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentOvDb = null;
+}
+
+async function loadOverlay(db) {
+  const list    = document.getElementById('ov-list');
+  const countEl = document.getElementById('ov-count');
+  list.innerHTML = `<div class="ov-empty"><span class="spinner"></span></div>`;
+  try {
+    const res  = await fetch(`/api/${db}/entries`);
+    if (!res.headers.get('content-type')?.includes('application/json')) throw new Error('Server returned non-JSON');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Failed to load');
+    const entries = data.entries || [];
+    countEl.textContent = entries.length;
+    if (!entries.length) {
+      list.innerHTML = `<div class="ov-empty">No entries yet</div>`;
+      updateOvArrow();
+      return;
+    }
+    list.innerHTML = entries.map(e => {
+      const idStr = String(e.id);
+      const enc   = encodeURIComponent(idStr);
+      return `<div class="ov-entry" id="ove-${db}-${enc}">
+        <div class="ov-entry-body">
+          <div class="ov-entry-text">${esc(e.content)}</div>
+          <div class="ov-entry-ts">🕐 ${fmtDate(e.createdAt)}</div>
+        </div>
+        <button class="ov-del" onclick="deleteEntry('${db}','${esc(idStr)}','${enc}')">✕</button>
+      </div>`;
+    }).join('');
+    updateOvArrow();
+  } catch (e) {
+    list.innerHTML = `<div class="ov-empty" style="color:var(--danger)">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function updateOvArrow() {
+  const list = document.getElementById('ov-list');
+  const arr  = document.getElementById('ov-arrow');
+  if (!list || !arr) return;
+  const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 8;
+  arr.classList.toggle('vis', list.scrollHeight > list.clientHeight + 8 && !atBottom);
+}
+function scrollOvDown() {
+  document.getElementById('ov-list').scrollBy({ top:120, behavior:'smooth' });
+}
+
+// ═══════════════════════════════════════════════════
+//  DELETE ENTRY
+// ═══════════════════════════════════════════════════
+async function deleteEntry(db, id, enc) {
+  const row = document.getElementById(`ove-${db}-${enc}`);
+  if (row) { row.style.opacity = '.35'; row.style.pointerEvents = 'none'; }
+  try {
+    // Redis keys contain colons so must be URI-encoded in the path
+    const path = db === 'redis'
+      ? `/api/${db}/entries/${encodeURIComponent(id)}`
+      : `/api/${db}/entries/${id}`;
+    const res  = await fetch(path, { method:'DELETE' });
+    if (!res.headers.get('content-type')?.includes('application/json')) throw new Error('Server returned non-JSON');
+    const data = await res.json();
+    if (data.ok) {
+      addLog(db, data.message, 'success');
+      await loadOverlay(db);
+    } else {
+      throw new Error(data.error || 'Delete failed');
+    }
+  } catch (e) {
+    addLog(db, `Delete error: ${e.message}`, 'error');
+    if (row) { row.style.opacity = '1'; row.style.pointerEvents = ''; }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS  (single listener)
+// ═══════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeOverlay(); return; }
+  if (e.key === 'Enter' && !e.shiftKey && e.target.classList.contains('write-ta')) {
+    e.preventDefault();
+    writeEntry(e.target.id.replace('input-', ''));
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  SCROLL LISTENERS
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  DBS.forEach(db => {
+    document.getElementById(`body-${db}`)?.addEventListener('scroll', () => updateCardArrow(db));
+  });
+  document.getElementById('ov-list').addEventListener('scroll', updateOvArrow);
+});
+
+// ═══════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════
+pollStatus();
+setInterval(pollStatus, 5000);
+</script>
+</body>
+</html>
