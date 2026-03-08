@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 7010;
 // ══════════════════════════════════════════════════════════
 const CFG = {
   mysql: {
-    host:               process.env.MYSQL_HOST     || 'mysql',
+    host:               process.env.MYSQL_HOST     || 'localhost',
     port:               Number(process.env.MYSQL_PORT) || 3306,
     user:               process.env.MYSQL_USER     || 'user',
     password:           process.env.MYSQL_PASSWORD || 'password',
@@ -24,7 +24,7 @@ const CFG = {
     connectTimeout:     5000,
   },
   postgres: {
-    host:                    process.env.PG_HOST     || 'postgres',
+    host:                    process.env.PG_HOST     || 'localhost',
     port:                    Number(process.env.PG_PORT) || 5432,
     user:                    process.env.PG_USER     || 'user',
     password:                process.env.PG_PASSWORD || 'password',
@@ -35,7 +35,7 @@ const CFG = {
   },
   redis: {
     socket: {
-      host:           process.env.REDIS_HOST || 'redis',
+      host:           process.env.REDIS_HOST || 'localhost',
       port:           Number(process.env.REDIS_PORT) || 6379,
       connectTimeout: 5000,
     },
@@ -43,7 +43,7 @@ const CFG = {
   },
   mongo: {
     uri: process.env.MONGO_URI ||
-      'mongodb://user:password@mongo:27017/appdb?authSource=admin',
+      'mongodb://user:password@localhost:27017/appdb?authSource=admin',
   },
 };
 
@@ -152,10 +152,16 @@ const MongoEntry = mongoose.model('Entry', new mongoose.Schema({
 
 async function connectMongo() {
   const rs = mongoose.connection.readyState;
-  if (rs === 1) { state.mongo.connected = true;  state.mongo.error = null; return; }
-  if (rs === 2) return; // already connecting — don't stack calls
+  if (rs === 1) { state.mongo.connected = true; state.mongo.error = null; return; }
+  // If stuck in connecting/disconnecting state, force-close before retrying
+  if (rs === 2 || rs === 3) {
+    try { await mongoose.disconnect(); } catch (_) {}
+  }
   try {
-    await mongoose.connect(CFG.mongo.uri, { serverSelectionTimeoutMS: 5000 });
+    await mongoose.connect(CFG.mongo.uri, {
+      serverSelectionTimeoutMS: 4000,
+      connectTimeoutMS:         4000,
+    });
     state.mongo.connected = true;
     state.mongo.error     = null;
     console.log('✅ MongoDB connected');
@@ -163,6 +169,7 @@ async function connectMongo() {
     state.mongo.connected = false;
     state.mongo.error     = err.message;
     console.error('❌ MongoDB:', err.message);
+    try { await mongoose.disconnect(); } catch (_) {}
   }
 }
 
@@ -404,40 +411,22 @@ app.use('/api', (_req, res) => {
 //  BOOT
 // ══════════════════════════════════════════════════════════
 (async () => {
-  console.log('🔌 Connecting to databases…');
+  // Start HTTP server immediately — API is reachable even if all DBs are down
+  const server = app.listen(PORT, () => {
+    console.log(`\n🚀 4_DB-Lab API →  http://localhost:${PORT}\n`);
+  });
 
-  // Initial connect — all 4 in parallel
-  await Promise.allSettled([
+  // Attempt DB connections in background — non-blocking
+  console.log('🔌 Connecting to databases…');
+  Promise.allSettled([
     connectMySQL(),
     connectPostgres(),
     connectRedis(),
     connectMongo(),
   ]);
 
-  // Boot retry: if any DB is still down, keep retrying every 5 s for up to 90 s.
-  // Handles the window between depends_on healthcheck passing and the DB
-  // actually accepting app-user connections (MySQL can lag a few seconds).
-  const bootDeadline = Date.now() + 90_000;
-  while (Date.now() < bootDeadline) {
-    const allUp = Object.values(state).every(s => s.connected);
-    if (allUp) break;
-    await new Promise(r => setTimeout(r, 5000));
-    const down = Object.entries(state)
-      .filter(([, s]) => !s.connected)
-      .map(([k]) => k);
-    console.log(`⏳ Retrying: ${down.join(', ')}…`);
-    await Promise.allSettled([
-      !state.mysql.connected    && connectMySQL(),
-      !state.postgres.connected && connectPostgres(),
-      !state.redis.connected    && connectRedis(),
-      !state.mongo.connected    && connectMongo(),
-    ]);
-  }
-
-  const timer  = setInterval(healthCheck, 15_000);
-  const server = app.listen(PORT, () => {
-    console.log(`\n🚀 4_DB-Lab API →  http://localhost:${PORT}\n`);
-  });
+  // Keep retrying failed DBs every 5 s
+  const timer = setInterval(healthCheck, 5_000);
 
   // Graceful shutdown (Docker stop sends SIGTERM)
   async function shutdown(signal) {
