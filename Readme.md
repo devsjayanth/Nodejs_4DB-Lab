@@ -38,7 +38,7 @@ Get this application running. Every service — Node.js, MySQL, PostgreSQL, Redi
 ## How the App Works
 
 - The **backend** (`server.js`) is a Node.js/Express API. It reads all database connection details from **environment variables**.
-- The **frontend** (`index.html`) is a static single-page app served by **nginx**. nginx also proxies all `/api/*` requests to the Node.js backend running on port `3000`.
+- The **frontend** (`index.html`) is a static single-page app served by **nginx**. nginx also proxies all `/api/*` requests to the Node.js backend running on port `7010`.
 - The UI polls `/api/status` every 5 seconds to show live connection state for each database.
 
 ---
@@ -49,7 +49,7 @@ Set these before starting the Node.js process:
 
 | Variable | Description |
 |---|---|
-| `PORT` | Port for the Node.js server (default `3000`) |
+| `PORT` | Port for the Node.js server (default `7010`) |
 | `MYSQL_HOST` | MySQL hostname |
 | `MYSQL_PORT` | MySQL port |
 | `MYSQL_USER` | MySQL username |

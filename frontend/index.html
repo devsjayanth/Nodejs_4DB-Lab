@@ -362,7 +362,7 @@ body{
   scrollbar-width:none;position:relative;
 }
 .card-body::-webkit-scrollbar{display:none}
-.card-body-inner{display:flex;flex-direction:column;gap:10px;padding-bottom:38px}
+.card-body-inner{display:flex;flex-direction:column;gap:10px;padding-bottom:12px}
 
 .write-lbl{
   font-family:'JetBrains Mono',monospace;
@@ -415,19 +415,6 @@ body{
 .log-item.err{border-color:hsla(0,72%,60%,.22);background:hsla(0,72%,60%,.06);color:var(--danger)}
 .log-ts{opacity:.45;margin-right:5px}
 
-.scroll-arrow{
-  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
-  width:28px;height:28px;border-radius:50%;
-  border:1px solid var(--border);background:hsla(220,22%,16%,.55);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  color:var(--muted);font-size:.7rem;
-  display:grid;place-items:center;
-  cursor:pointer;opacity:0;transition:opacity .25s,border-color .2s;z-index:10;
-  font-weight:400!important;
-}
-[data-theme="light"] .scroll-arrow{background:hsla(220,28%,96%,.50)}
-.scroll-arrow.vis{opacity:1}
-.scroll-arrow:hover{border-color:var(--c);color:var(--c)}
 
 /* ═══════════════════════════════════════════════════
    ENTRIES OVERLAY
@@ -616,7 +603,6 @@ body{
 [data-theme="light"] .ov-entry-ts {color:hsl(220,20%,30%);opacity:1}
 [data-theme="light"] .ov-entry:hover{background:hsla(220,28%,80%,.25)}
 [data-theme="light"] .ov-close    {border-color:hsl(220,20%,63%);color:hsl(220,25%,22%)}
-[data-theme="light"] .scroll-arrow{border-color:hsl(220,20%,63%);color:hsl(220,25%,24%)}
 [data-theme="light"] .view-hint   {color:hsl(220,22%,32%)}
 [data-theme="light"] .theme-toggle{border-color:hsl(220,20%,63%);color:hsl(220,25%,22%)}
 [data-theme="light"] .card-head:hover{background:hsla(220,40%,50%,.07)}
@@ -705,7 +691,6 @@ body{
         <button class="write-btn" id="btn-mysql" onclick="writeEntry('mysql')" disabled>Insert Row ↗</button>
         <div class="log-area" id="log-mysql"></div>
       </div>
-      <button class="scroll-arrow" id="sarr-mysql" onclick="scrollCardDown('mysql')" tabindex="-1">▼</button>
     </div>
   </article>
 
@@ -735,7 +720,6 @@ body{
         <button class="write-btn" id="btn-mongo" onclick="writeEntry('mongo')" disabled>Insert Doc ↗</button>
         <div class="log-area" id="log-mongo"></div>
       </div>
-      <button class="scroll-arrow" id="sarr-mongo" onclick="scrollCardDown('mongo')" tabindex="-1">▼</button>
     </div>
   </article>
 
@@ -765,7 +749,6 @@ body{
         <button class="write-btn" id="btn-postgres" onclick="writeEntry('postgres')" disabled>Insert Row ↗</button>
         <div class="log-area" id="log-postgres"></div>
       </div>
-      <button class="scroll-arrow" id="sarr-postgres" onclick="scrollCardDown('postgres')" tabindex="-1">▼</button>
     </div>
   </article>
 
@@ -795,7 +778,6 @@ body{
         <button class="write-btn" id="btn-redis" onclick="writeEntry('redis')" disabled>SET Key ↗</button>
         <div class="log-area" id="log-redis"></div>
       </div>
-      <button class="scroll-arrow" id="sarr-redis" onclick="scrollCardDown('redis')" tabindex="-1">▼</button>
     </div>
   </article>
 
@@ -907,28 +889,12 @@ function esc(s) {
 function addLog(db, msg, type = 'info') {
   const area = document.getElementById(`log-${db}`);
   if (!area) return;
-  // keep max 5 entries
-  while (area.children.length >= 5) area.removeChild(area.lastChild);
+  // keep max 50 entries
+  while (area.children.length >= 50) area.removeChild(area.lastChild);
   const el = document.createElement('div');
   el.className = `log-item ${type === 'success' ? 'ok' : type === 'error' ? 'err' : ''}`;
   el.innerHTML = `<span class="log-ts">${ts()}</span>${esc(msg)}`;
   area.prepend(el);
-  updateCardArrow(db);
-}
-
-// ═══════════════════════════════════════════════════
-//  CARD SCROLL ARROW
-// ═══════════════════════════════════════════════════
-function updateCardArrow(db) {
-  const body = document.getElementById(`body-${db}`);
-  const arr  = document.getElementById(`sarr-${db}`);
-  if (!body || !arr) return;
-  const canScroll = body.scrollHeight > body.clientHeight + 8;
-  const atBottom  = body.scrollTop + body.clientHeight >= body.scrollHeight - 8;
-  arr.classList.toggle('vis', canScroll && !atBottom);
-}
-function scrollCardDown(db) {
-  document.getElementById(`body-${db}`)?.scrollBy({ top:100, behavior:'smooth' });
 }
 
 // ═══════════════════════════════════════════════════
@@ -1139,9 +1105,6 @@ document.addEventListener('keydown', e => {
 //  SCROLL LISTENERS
 // ═══════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  DBS.forEach(db => {
-    document.getElementById(`body-${db}`)?.addEventListener('scroll', () => updateCardArrow(db));
-  });
   document.getElementById('ov-list').addEventListener('scroll', updateOvArrow);
 });
 
