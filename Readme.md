@@ -5,7 +5,7 @@
 
 ---
 
-## 📍What Is This?
+## 🤔 What Is This?
 
 4_DB-Lab is a learning project designed to teach you how to deploy a real multi-service application from scratch.
 
@@ -13,38 +13,38 @@ The app connects to **MySQL**, **MongoDB**, **PostgreSQL**, and **Redis** at the
 
 ---
 
-## 😬The Challenge
+## 🎯 The Challenge
 
-Get this application running. Every service — Node.js, MySQL, PostgreSQL, Redis, MongoDB, and nginx — must be installed and configured by you. The app should be accessible from a browser.
+Get this application running. Every service — Node.js, MySQL, PostgreSQL, Redis, MongoDB, and Nginx — must be installed and configured by you. The app should be accessible from a browser.
 
 ---
 
-## 📂Project Structure
+## 📁 Project Structure
 
 ```
-4_DB-Nodejs/
+Nodejs_4DB-Lab/
 ├── backend/
 │   ├── server.js          # Express API — reads DB config from environment variables
 │   └── package.json       # Dependencies: express, mysql2, pg, redis, mongoose
 ├── frontend/
 │   ├── index.html         # Single-file UI — no build step needed
-│   └── nginx.conf         # nginx site config — serves the UI and proxies /api/*
+│   └── Nginx.conf         # Nginx site config — serves the UI and proxies /api/*
 ├── Dockerfile
 └── docker-compose.yml
 ```
 
 ---
 
-## 📍How the App Works
+## ⚙️ How the App Works
 
 - The **backend** (`server.js`) is a Node.js/Express API. It reads all database connection details from **environment variables**.
-- The **frontend** (`index.html`) is a static single-page app served by **nginx**. nginx also proxies all `/api/*` requests to the Node.js backend running on port `7010`.
+- The **frontend** (`index.html`) is a static single-page app served by **Nginx**. Nginx also proxies all `/api/*` requests to the Node.js backend running on port `7010`.
 - The UI polls `/api/status` every 5 seconds to show live connection state for each database.
 - The server starts immediately and retries failed database connections every 5 seconds in the background.
 
 ---
 
-## 📮Environment Variables the App Expects
+## 🔧 Environment Variables the App Expects
 
 Set these before starting the Node.js process:
 
@@ -68,7 +68,7 @@ Set these before starting the Node.js process:
 
 ---
 
-## 📍API Endpoints
+## 🌐 API Endpoints
 
 | Method | Route | Description |
 |---|---|---|
@@ -90,9 +90,9 @@ All responses return `{ ok: true/false, ... }`. Write requests expect `Content-T
 
 ---
 
-## 🏗️Installing on VM / Bare Metal (RHEL / CentOS / Fedora)
+## 🎩 Installing — RHEL / CentOS Stream / Fedora
 
-### 🚀Node.js
+### 🟢 Node.js
 
 ```bash
 # The default dnf version is outdated — install v20 from NodeSource
@@ -103,28 +103,28 @@ sudo dnf install -y nodejs
 node --version   # should say v20.x.x
 
 # Install app dependencies
-cd ~/4_DB-Nodejs/backend
+cd ~/Nodejs_4DB-Lab/backend
 npm install
 ```
 
-### 🌏Nginx
+### 🌐 Nginx
 
 ```bash
-sudo dnf install -y nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
+sudo dnf install -y Nginx
+sudo systemctl start Nginx
+sudo systemctl enable Nginx
 ```
 
 Copy the provided config and update the `root` path to match where your project lives:
 
 ```bash
-sudo cp ~/4_DB-Nodejs/frontend/nginx.conf /etc/nginx/conf.d/4db.conf
-sudo nano /etc/nginx/conf.d/4db.conf   # update root path
-sudo nginx -t
-sudo systemctl reload nginx
+sudo cp ~/Nodejs_4DB-Lab/frontend/Nginx.conf /etc/Nginx/conf.d/4db.conf
+sudo nano /etc/Nginx/conf.d/4db.conf   # update root path
+sudo Nginx -t
+sudo systemctl reload Nginx
 ```
 
-### 🐬MySQL
+### 🐬 MySQL
 
 ```bash
 sudo dnf install -y mysql-server
@@ -140,13 +140,13 @@ sudo mysql -u root -p
 
 ```sql
 CREATE DATABASE appdb;
-CREATE USER 'user'@'localhost' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON appdb.* TO 'user'@'localhost';
+CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'apppassword';
+GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-### 🐘PostgreSQL
+### 🐘 PostgreSQL
 
 ```bash
 sudo dnf install -y postgresql-server postgresql-contrib
@@ -184,12 +184,12 @@ sudo -i -u postgres psql
 
 ```sql
 CREATE DATABASE appdb;
-CREATE USER "user" WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE appdb TO "user";
+CREATE USER "appuser" WITH PASSWORD 'apppassword';
+GRANT ALL PRIVILEGES ON DATABASE appdb TO "appuser";
 EXIT;
 ```
 
-### 🍃MongoDB
+### 🍃 MongoDB
 
 Create the repository file:
 
@@ -219,8 +219,8 @@ mongosh
 ```js
 use admin
 db.createUser({
-  user: "user",
-  pwd: "password",
+  user: "appuser",
+  pwd: "apppassword",
   roles: [{ role: "root", db: "admin" }]
 })
 exit
@@ -242,10 +242,10 @@ security:
 sudo systemctl restart mongod
 
 # Verify login works
-mongosh "mongodb://user:password@localhost:27017/appdb?authSource=admin"
+mongosh "mongodb://appuser:apppassword@localhost:27017/appdb?authSource=admin"
 ```
 
-### ⚡Redis
+### 🔴 Redis
 
 ```bash
 sudo dnf install -y redis
@@ -258,22 +258,22 @@ sudo nano /etc/redis/redis.conf
 
 Find `# requirepass foobared` and replace with:
 ```
-requirepass password
+requirepass apppassword
 ```
 
 ```bash
 sudo systemctl restart redis
 
 # Verify
-redis-cli -a password ping
+redis-cli -a apppassword ping
 # Expected output: PONG
 ```
 
 ---
 
-## 🏗️Installing on VM / Bare Metal (Debian / Ubuntu)
+## 🐧 Installing — Debian / Ubuntu
 
-### 🚀Node.js
+### 🟢 Node.js
 
 ```bash
 # The default apt version is outdated — install v20 from NodeSource
@@ -284,33 +284,33 @@ sudo apt install -y nodejs
 node --version   # should say v20.x.x
 
 # Install app dependencies
-cd ~/4_DB-Nodejs/backend
+cd ~/Nodejs_4DB-Lab/backend
 npm install
 ```
 
-### 🌏Nginx
+### 🌐 Nginx
 
 ```bash
-sudo apt install -y nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
+sudo apt install -y Nginx
+sudo systemctl start Nginx
+sudo systemctl enable Nginx
 ```
 
 Copy the provided config and update the `root` path:
 
 ```bash
-sudo cp ~/4_DB-Nodejs/frontend/nginx.conf /etc/nginx/sites-available/4db-lab
-sudo nano /etc/nginx/sites-available/4db-lab   # update root path
+sudo cp ~/Nodejs_4DB-Lab/frontend/Nginx.conf /etc/Nginx/sites-available/4db-lab
+sudo nano /etc/Nginx/sites-available/4db-lab   # update root path
 
 # Enable the site and disable the default
-sudo ln -s /etc/nginx/sites-available/4db-lab /etc/nginx/sites-enabled/4db-lab
-sudo rm /etc/nginx/sites-enabled/default
+sudo ln -s /etc/Nginx/sites-available/4db-lab /etc/Nginx/sites-enabled/4db-lab
+sudo rm /etc/Nginx/sites-enabled/default
 
-sudo nginx -t
-sudo systemctl reload nginx
+sudo Nginx -t
+sudo systemctl reload Nginx
 ```
 
-### 🐬MySQL
+### 🐬 MySQL
 
 ```bash
 sudo apt install -y mysql-server
@@ -326,13 +326,13 @@ sudo mysql -u root -p
 
 ```sql
 CREATE DATABASE appdb;
-CREATE USER 'user'@'localhost' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON appdb.* TO 'user'@'localhost';
+CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'apppassword';
+GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
 
-### 🐘PostgreSQL
+### 🐘 PostgreSQL
 
 ```bash
 sudo apt install -y postgresql postgresql-contrib
@@ -366,12 +366,12 @@ sudo -i -u postgres psql
 
 ```sql
 CREATE DATABASE appdb;
-CREATE USER "user" WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE appdb TO "user";
+CREATE USER "appuser" WITH PASSWORD 'apppassword';
+GRANT ALL PRIVILEGES ON DATABASE appdb TO "appuser";
 EXIT;
 ```
 
-### 🍃MongoDB
+### 🍃 MongoDB
 
 ```bash
 # Install required dependencies
@@ -399,8 +399,8 @@ mongosh
 ```js
 use admin
 db.createUser({
-  user: "user",
-  pwd: "password",
+  user: "appuser",
+  pwd: "apppassword",
   roles: [{ role: "root", db: "admin" }]
 })
 exit
@@ -422,10 +422,10 @@ security:
 sudo systemctl restart mongod
 
 # Verify login works
-mongosh "mongodb://user:password@localhost:27017/appdb?authSource=admin"
+mongosh "mongodb://appuser:apppassword@localhost:27017/appdb?authSource=admin"
 ```
 
-### ⚡Redis
+### 🔴 Redis
 
 ```bash
 sudo apt install -y redis-server
@@ -438,7 +438,7 @@ sudo nano /etc/redis/redis.conf
 
 Find `# requirepass foobared` and replace with:
 ```
-requirepass password
+requirepass apppassword
 ```
 
 Also make sure this line is set:
@@ -450,13 +450,13 @@ supervised systemd
 sudo systemctl restart redis-server
 
 # Verify
-redis-cli -a password ping
+redis-cli -a apppassword ping
 # Expected output: PONG
 ```
 
 ---
 
-## UFW Configuration (Debian / Ubuntu)
+## 🔥 UFW Configuration (Debian / Ubuntu)
 
 Ubuntu ships with UFW (Uncomplicated Firewall). Allow HTTP so the browser can reach the app:
 
@@ -483,10 +483,12 @@ Remove that rule once done — in production only port 80 should be open.
 
 ---
 
-RHEL enforces SELinux by default. Without these settings nginx cannot proxy to Node.js and Node.js cannot connect to the databases.
+## 🔐 SELinux Configuration (RHEL / CentOS)
+
+RHEL enforces SELinux by default. Without these settings Nginx cannot proxy to Node.js and Node.js cannot connect to the databases.
 
 ```bash
-# Allow nginx to make network connections (required for proxy to Node.js)
+# Allow Nginx to make network connections (required for proxy to Node.js)
 sudo setsebool -P httpd_can_network_connect 1
 
 # Verify the setting is applied
@@ -498,13 +500,13 @@ If you see SELinux denials in logs:
 # Check what SELinux is blocking
 sudo ausearch -m avc -ts recent
 
-# View nginx-specific denials
-sudo grep nginx /var/log/audit/audit.log | tail -20
+# View Nginx-specific denials
+sudo grep Nginx /var/log/audit/audit.log | tail -20
 ```
 
 ---
 
-## Firewalld Configuration (RHEL / CentOS)
+## 🧱 Firewalld Configuration (RHEL / CentOS)
 
 By default RHEL's firewall blocks all ports except SSH. Open port 80 so the browser can reach the app:
 
@@ -519,7 +521,7 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-all
 ```
 
-If you want to access the Node.js API directly (bypass nginx) during debugging:
+If you want to access the Node.js API directly (bypass Nginx) during debugging:
 
 ```bash
 sudo firewall-cmd --permanent --add-port=7010/tcp
@@ -530,11 +532,11 @@ Remove that rule once you're done debugging — in production only port 80 shoul
 
 ---
 
-## 👾Verify Everything Is Running
+## ✅ Verify Everything Is Running
 
 ```bash
 # Check all services
-sudo systemctl status mysqld postgresql mongod redis nginx
+sudo systemctl status mysqld postgresql mongod redis Nginx
 
 # Check Node.js is listening
 ss -tlnp | grep 7010
@@ -542,23 +544,23 @@ ss -tlnp | grep 7010
 # Test API directly
 curl http://127.0.0.1:7010/api/status
 
-# Test through nginx
+# Test through Nginx
 curl http://localhost/api/status
 ```
 
 ---
 
-## 🏗️Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Runtime | Node.js 20 |
 | Framework | Express |
 | Databases | MySQL 8 · PostgreSQL 16 · Redis 7 · MongoDB 7 |
-| Web server | nginx |
+| Web server | Nginx |
 
 ---
 
-## License
+## 📄 License
 
 MIT — use freely❤️, learn freely.

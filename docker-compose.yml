@@ -30,18 +30,18 @@ services:
       PORT: 7010
       MYSQL_HOST:     mysql
       MYSQL_PORT:     3306
-      MYSQL_USER:     user
-      MYSQL_PASSWORD: password
+      MYSQL_USER:     appuser
+      MYSQL_PASSWORD: apppassword
       MYSQL_DATABASE: appdb
       PG_HOST:        postgres
       PG_PORT:        5432
-      PG_USER:        user
-      PG_PASSWORD:    password
+      PG_USER:        appuser
+      PG_PASSWORD:    apppassword
       PG_DATABASE:    appdb
       REDIS_HOST:     redis
       REDIS_PORT:     6379
-      REDIS_PASSWORD: password
-      MONGO_URI:      mongodb://user:password@mongo:27017/appdb?authSource=admin
+      REDIS_PASSWORD: apppassword
+      MONGO_URI:      mongodb://appuser:apppassword@mongo:27017/appdb?authSource=admin
     depends_on:
       mysql:
         condition: service_healthy
@@ -62,8 +62,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root_pass
       MYSQL_DATABASE:      appdb
-      MYSQL_USER:          user
-      MYSQL_PASSWORD:      password
+      MYSQL_USER:          appuser
+      MYSQL_PASSWORD:      apppassword
     ports:
       - "3307:3306"   # host:container — avoids conflict with local MySQL
     volumes:
@@ -83,15 +83,15 @@ services:
     container_name: 4db_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER:     user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER:     appuser
+      POSTGRES_PASSWORD: apppassword
       POSTGRES_DB:       appdb
     ports:
       - "5433:5432"   # host:container — avoids conflict with local PostgreSQL
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d appdb"]
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -104,13 +104,13 @@ services:
     image: redis:7-alpine
     container_name: 4db_redis
     restart: unless-stopped
-    command: redis-server --requirepass password --appendonly yes
+    command: redis-server --requirepass apppassword --appendonly yes
     ports:
       - "6380:6379"   # host:container — avoids conflict with local Redis
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "password", "ping"]
+      test: ["CMD", "redis-cli", "-a", "apppassword", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -124,15 +124,15 @@ services:
     container_name: 4db_mongo
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: user
-      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_USERNAME: appuser
+      MONGO_INITDB_ROOT_PASSWORD: apppassword
       MONGO_INITDB_DATABASE:      appdb
     ports:
       - "27018:27017"  # host:container — avoids conflict with local MongoDB
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok", "--username", "user", "--password", "password", "--authenticationDatabase", "admin"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok", "--username", "appuser", "--password", "apppassword", "--authenticationDatabase", "admin"]
       interval: 15s
       timeout: 10s
       retries: 10
