@@ -3,6 +3,12 @@
 
 **Happy Learning — Made with ❤️ by Dev Jayanth**
 
+# 4_DB-Lab 🗄️
+
+> A Node.js application that connects to four databases simultaneously and exposes a browser UI to write, view, and delete entries across all of them.
+
+**Happy Learning — Made with ❤️ by Dev Jayanth**
+
 ---
 
 ## 🤔 What Is This?
@@ -15,7 +21,7 @@ The app connects to **MySQL**, **MongoDB**, **PostgreSQL**, and **Redis** at the
 
 ## 🎯 The Challenge
 
-Get this application running. Every service — Node.js, MySQL, PostgreSQL, Redis, MongoDB, and Nginx — must be installed and configured by you. The app should be accessible from a browser.
+Get this application running. Every service — Node.js, MySQL, PostgreSQL, Redis, MongoDB, and nginx — must be installed and configured by you. The app should be accessible from a browser.
 
 ---
 
@@ -28,7 +34,7 @@ Nodejs_4DB-Lab/
 │   └── package.json       # Dependencies: express, mysql2, pg, redis, mongoose
 ├── frontend/
 │   ├── index.html         # Single-file UI — no build step needed
-│   └── Nginx.conf         # Nginx site config — serves the UI and proxies /api/*
+│   └── nginx.conf         # nginx site config — serves the UI and proxies /api/*
 ├── Dockerfile
 └── docker-compose.yml
 ```
@@ -38,7 +44,7 @@ Nodejs_4DB-Lab/
 ## ⚙️ How the App Works
 
 - The **backend** (`server.js`) is a Node.js/Express API. It reads all database connection details from **environment variables**.
-- The **frontend** (`index.html`) is a static single-page app served by **Nginx**. Nginx also proxies all `/api/*` requests to the Node.js backend running on port `7010`.
+- The **frontend** (`index.html`) is a static single-page app served by **nginx**. nginx also proxies all `/api/*` requests to the Node.js backend running on port `7010`.
 - The UI polls `/api/status` every 5 seconds to show live connection state for each database.
 - The server starts immediately and retries failed database connections every 5 seconds in the background.
 
@@ -158,34 +164,33 @@ sudo systemctl start postgresql
 sudo systemctl enable postgresql
 ```
 
-Edit `pg_hba.conf` to switch from `ident` to `md5` authentication — RHEL defaults to `ident` which will block the app:
+Edit `pg_hba.conf` to configure authentication methods:
 
 ```bash
 sudo nano /var/lib/pgsql/data/pg_hba.conf
 ```
 
-Find and change these lines:
-```
-# Before
-local   all   all                    ident
-host    all   all   127.0.0.1/32     ident
+Set it to match this exactly:
 
-# After
-local   all   all                    md5
-host    all   all   127.0.0.1/32     md5
+```
+# TYPE  DATABASE  USER      ADDRESS        METHOD
+local   all       postgres                 peer
+local   all       all                      md5
+host    all       all       127.0.0.1/32   md5
+host    all       all       ::1/128        md5
 ```
 
 ```bash
 sudo systemctl restart postgresql
 
-# Create the app user and database
+# Open the postgres shell
 sudo -i -u postgres psql
 ```
 
 ```sql
 CREATE DATABASE appdb;
-CREATE USER "appuser" WITH PASSWORD 'apppassword';
-GRANT ALL PRIVILEGES ON DATABASE appdb TO "appuser";
+CREATE ROLE appuser WITH LOGIN PASSWORD 'apppassword';
+GRANT ALL PRIVILEGES ON DATABASE appdb TO appuser;
 EXIT;
 ```
 
@@ -269,6 +274,67 @@ redis-cli -a apppassword ping
 # Expected output: PONG
 ```
 
+### 🔐 SELinux Configuration
+
+RHEL enforces SELinux by default. Without this setting nginx cannot proxy requests to Node.js.
+
+```bash
+# Allow nginx to make network connections (required for proxy to Node.js)
+sudo setsebool -P httpd_can_network_connect 1
+
+# Verify the setting is applied
+getsebool httpd_can_network_connect
+```
+
+If you see SELinux denials in logs:
+```bash
+# Check what SELinux is blocking
+sudo ausearch -m avc -ts recent
+
+# View nginx-specific denials
+sudo grep nginx /var/log/audit/audit.log | tail -20
+```
+
+### 🧱 Firewalld Configuration
+
+By default RHEL's firewall blocks all ports except SSH. Open port 80 so the browser can reach the app:
+
+```bash
+# Allow HTTP traffic on port 80
+sudo firewall-cmd --permanent --add-service=http
+
+# Reload firewall to apply
+sudo firewall-cmd --reload
+
+# Verify port 80 is open
+sudo firewall-cmd --list-all
+```
+
+If you want to access the Node.js API directly (bypass nginx) during debugging:
+
+```bash
+sudo firewall-cmd --permanent --add-port=7010/tcp
+sudo firewall-cmd --reload
+```
+
+Remove that rule once you're done debugging — in production only port 80 should be open.
+
+### ✅ Verify Everything Is Running (RHEL)
+
+```bash
+# Check all services
+sudo systemctl status mysqld postgresql mongod redis nginx
+
+# Check Node.js is listening
+ss -tlnp | grep 7010
+
+# Test API directly
+curl http://127.0.0.1:7010/api/status
+
+# Test through nginx
+curl http://localhost/api/status
+```
+
 ---
 
 ## 🐧 Installing — Debian / Ubuntu
@@ -340,34 +406,33 @@ sudo systemctl start postgresql
 sudo systemctl enable postgresql
 ```
 
-Edit `pg_hba.conf` to switch from `peer` to `md5` authentication — Ubuntu defaults to `peer` which will block the app:
+Edit `pg_hba.conf` to configure authentication methods:
 
 ```bash
 sudo nano /etc/postgresql/*/main/pg_hba.conf
 ```
 
-Find and change these lines:
-```
-# Before
-local   all   all                    peer
-host    all   all   127.0.0.1/32     ident
+Set it to match this exactly:
 
-# After
-local   all   all                    md5
-host    all   all   127.0.0.1/32     md5
+```
+# TYPE  DATABASE  USER      ADDRESS        METHOD
+local   all       postgres                 peer
+local   all       all                      md5
+host    all       all       127.0.0.1/32   md5
+host    all       all       ::1/128        md5
 ```
 
 ```bash
 sudo systemctl restart postgresql
 
-# Create the app user and database
+# Open the postgres shell
 sudo -i -u postgres psql
 ```
 
 ```sql
 CREATE DATABASE appdb;
-CREATE USER "appuser" WITH PASSWORD 'apppassword';
-GRANT ALL PRIVILEGES ON DATABASE appdb TO "appuser";
+CREATE ROLE appuser WITH LOGIN PASSWORD 'apppassword';
+GRANT ALL PRIVILEGES ON DATABASE appdb TO appuser;
 EXIT;
 ```
 
@@ -454,18 +519,16 @@ redis-cli -a apppassword ping
 # Expected output: PONG
 ```
 
----
-
-## 🔥 UFW Configuration (Debian / Ubuntu)
+### 🔥 UFW Configuration
 
 Ubuntu ships with UFW (Uncomplicated Firewall). Allow HTTP so the browser can reach the app:
 
 ```bash
-# Allow HTTP
-sudo ufw allow 80/tcp
-
 # Allow SSH so you don't lock yourself out
 sudo ufw allow ssh
+
+# Allow HTTP
+sudo ufw allow 80/tcp
 
 # Enable the firewall if not already enabled
 sudo ufw enable
@@ -481,62 +544,11 @@ sudo ufw allow 7010/tcp
 
 Remove that rule once done — in production only port 80 should be open.
 
----
-
-## 🔐 SELinux Configuration (RHEL / CentOS)
-
-RHEL enforces SELinux by default. Without these settings Nginx cannot proxy to Node.js and Node.js cannot connect to the databases.
-
-```bash
-# Allow Nginx to make network connections (required for proxy to Node.js)
-sudo setsebool -P httpd_can_network_connect 1
-
-# Verify the setting is applied
-getsebool httpd_can_network_connect
-```
-
-If you see SELinux denials in logs:
-```bash
-# Check what SELinux is blocking
-sudo ausearch -m avc -ts recent
-
-# View Nginx-specific denials
-sudo grep Nginx /var/log/audit/audit.log | tail -20
-```
-
----
-
-## 🧱 Firewalld Configuration (RHEL / CentOS)
-
-By default RHEL's firewall blocks all ports except SSH. Open port 80 so the browser can reach the app:
-
-```bash
-# Allow HTTP traffic on port 80
-sudo firewall-cmd --permanent --add-service=http
-
-# Reload firewall to apply
-sudo firewall-cmd --reload
-
-# Verify port 80 is open
-sudo firewall-cmd --list-all
-```
-
-If you want to access the Node.js API directly (bypass Nginx) during debugging:
-
-```bash
-sudo firewall-cmd --permanent --add-port=7010/tcp
-sudo firewall-cmd --reload
-```
-
-Remove that rule once you're done debugging — in production only port 80 should be open.
-
----
-
-## ✅ Verify Everything Is Running
+### ✅ Verify Everything Is Running (Debian / Ubuntu)
 
 ```bash
 # Check all services
-sudo systemctl status mysqld postgresql mongod redis Nginx
+sudo systemctl status mysql postgresql mongod redis-server nginx
 
 # Check Node.js is listening
 ss -tlnp | grep 7010
@@ -544,7 +556,7 @@ ss -tlnp | grep 7010
 # Test API directly
 curl http://127.0.0.1:7010/api/status
 
-# Test through Nginx
+# Test through nginx
 curl http://localhost/api/status
 ```
 
@@ -557,7 +569,7 @@ curl http://localhost/api/status
 | Runtime | Node.js 20 |
 | Framework | Express |
 | Databases | MySQL 8 · PostgreSQL 16 · Redis 7 · MongoDB 7 |
-| Web server | Nginx |
+| Web server | nginx |
 
 ---
 
