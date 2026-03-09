@@ -110,18 +110,18 @@ npm install
 ### 🌐 Nginx
 
 ```bash
-sudo dnf install -y Nginx
-sudo systemctl start Nginx
-sudo systemctl enable Nginx
+sudo dnf install -y nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
 ```
 
 Copy the provided config and update the `root` path to match where your project lives:
 
 ```bash
-sudo cp ~/Nodejs_4DB-Lab/frontend/Nginx.conf /etc/Nginx/conf.d/4db.conf
-sudo nano /etc/Nginx/conf.d/4db.conf   # update root path
-sudo Nginx -t
-sudo systemctl reload Nginx
+sudo cp ~/Nodejs_4DB-Lab/frontend/nginx.conf /etc/nginx/conf.d/4db.conf
+sudo nano /etc/nginx/conf.d/4db.conf   # update root path
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 ### 🐬 MySQL
@@ -291,23 +291,23 @@ npm install
 ### 🌐 Nginx
 
 ```bash
-sudo apt install -y Nginx
-sudo systemctl start Nginx
-sudo systemctl enable Nginx
+sudo apt install -y nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
 ```
 
 Copy the provided config and update the `root` path:
 
 ```bash
-sudo cp ~/Nodejs_4DB-Lab/frontend/Nginx.conf /etc/Nginx/sites-available/4db-lab
-sudo nano /etc/Nginx/sites-available/4db-lab   # update root path
+sudo cp ~/Nodejs_4DB-Lab/frontend/nginx.conf /etc/nginx/sites-available/4db-lab
+sudo nano /etc/nginx/sites-available/4db-lab   # update root path
 
 # Enable the site and disable the default
-sudo ln -s /etc/Nginx/sites-available/4db-lab /etc/Nginx/sites-enabled/4db-lab
-sudo rm /etc/Nginx/sites-enabled/default
+sudo ln -s /etc/nginx/sites-available/4db-lab /etc/nginx/sites-enabled/4db-lab
+sudo rm /etc/nginx/sites-enabled/default
 
-sudo Nginx -t
-sudo systemctl reload Nginx
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 ### 🐬 MySQL
